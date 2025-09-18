@@ -1,106 +1,144 @@
 import pygame
 import random
 
-# Initialize Pygame
-pygame.init()
+# --- Constants ---
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+SNAKE_SEGMENT_SIZE = 20
+BACKGROUND_COLOR = (34, 34, 34)
+SNAKE_COLOR = (109, 237, 138)
+FOOD_COLOR = (255, 95, 133)
+TEXT_COLOR = (240, 241, 78)
+FPS = 10
 
-# Screen dimensions
-screen_width = 800
-screen_height = 600
+# --- Functions ---
 
-# Create the screen
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Snake Game")
-
-# Snake properties
-snake_segment_size = 20
-snake_color = (0, 255, 0)  # Green
-snake_segments = [
-    pygame.Rect(100, 100, snake_segment_size, snake_segment_size),
-    pygame.Rect(80, 100, snake_segment_size, snake_segment_size),
-    pygame.Rect(60, 100, snake_segment_size, snake_segment_size),
-]
-
-# Food properties
-food_color = (255, 0, 0)  # Red
-food_position = pygame.Rect(
-    random.randrange(0, screen_width // snake_segment_size) * snake_segment_size,
-    random.randrange(0, screen_height // snake_segment_size) * snake_segment_size,
-    snake_segment_size,
-    snake_segment_size,
-)
-
-# Initial direction
-direction = "RIGHT"
-
-# Clock
-clock = pygame.time.Clock()
-
-# Game loop
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP and direction != "DOWN":
-                direction = "UP"
-            elif event.key == pygame.K_DOWN and direction != "UP":
-                direction = "DOWN"
-            elif event.key == pygame.K_LEFT and direction != "RIGHT":
-                direction = "LEFT"
-            elif event.key == pygame.K_RIGHT and direction != "LEFT":
-                direction = "RIGHT"
-
-    # Move the snake
+def move_snake(direction, snake_segments):
+    """Moves the snake by adding a new head in the given direction."""
     if direction == "RIGHT":
-        new_head = pygame.Rect(snake_segments[0].x + snake_segment_size, snake_segments[0].y, snake_segment_size, snake_segment_size)
+        new_head = pygame.Rect(snake_segments[0].x + SNAKE_SEGMENT_SIZE, snake_segments[0].y, SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE)
     elif direction == "LEFT":
-        new_head = pygame.Rect(snake_segments[0].x - snake_segment_size, snake_segments[0].y, snake_segment_size, snake_segment_size)
+        new_head = pygame.Rect(snake_segments[0].x - SNAKE_SEGMENT_SIZE, snake_segments[0].y, SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE)
     elif direction == "UP":
-        new_head = pygame.Rect(snake_segments[0].x, snake_segments[0].y - snake_segment_size, snake_segment_size, snake_segment_size)
+        new_head = pygame.Rect(snake_segments[0].x, snake_segments[0].y - SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE)
     elif direction == "DOWN":
-        new_head = pygame.Rect(snake_segments[0].x, snake_segments[0].y + snake_segment_size, snake_segment_size, snake_segment_size)
-
+        new_head = pygame.Rect(snake_segments[0].x, snake_segments[0].y + SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE)
     snake_segments.insert(0, new_head)
 
-    # Check for food consumption
+def check_food_collision(snake_segments, food_position):
+    """Checks for collision with food. If eaten, moves food and returns True."""
     if snake_segments[0].colliderect(food_position):
-        food_position.x = random.randrange(0, screen_width // snake_segment_size) * snake_segment_size
-        food_position.y = random.randrange(0, screen_height // snake_segment_size) * snake_segment_size
-    else:
-        snake_segments.pop()
+        food_position.x = random.randrange(0, SCREEN_WIDTH // SNAKE_SEGMENT_SIZE) * SNAKE_SEGMENT_SIZE
+        food_position.y = random.randrange(0, SCREEN_HEIGHT // SNAKE_SEGMENT_SIZE) * SNAKE_SEGMENT_SIZE
+        return True
+    return False
 
-    # Check for collisions
+def check_game_over(snake_segments):
+    """Checks for game over conditions (wall or self-collision)."""
+    head = snake_segments[0]
     # Wall collision
-    if (
-        snake_segments[0].left < 0
-        or snake_segments[0].right > screen_width
-        or snake_segments[0].top < 0
-        or snake_segments[0].bottom > screen_height
-    ):
-        running = False
-
+    if (head.left < 0 or head.right > SCREEN_WIDTH or
+            head.top < 0 or head.bottom > SCREEN_HEIGHT):
+        return True
     # Self collision
     for segment in snake_segments[1:]:
-        if snake_segments[0].colliderect(segment):
-            running = False
+        if head.colliderect(segment):
+            return True
+    return False
 
-    # Fill the background
-    screen.fill((0, 0, 0))  # Black
-
-    # Draw the snake
+def draw_elements(screen, snake_segments, food_position, score):
+    """Draws all game elements on the screen."""
+    screen.fill(BACKGROUND_COLOR)
     for segment in snake_segments:
-        pygame.draw.rect(screen, snake_color, segment)
+        pygame.draw.rect(screen, SNAKE_COLOR, segment)
+    pygame.draw.rect(screen, FOOD_COLOR, food_position)
 
-    # Draw the food
-    pygame.draw.rect(screen, food_color, food_position)
+    # Draw the score
+    font = pygame.font.Font(None, 36)
+    text = font.render(f"Score: {score}", True, TEXT_COLOR)
+    screen.blit(text, (10, 10))
 
-    # Update the display
     pygame.display.flip()
 
-    # Control the frame rate
-    clock.tick(10)
+def draw_game_over(screen, score):
+    """Displays the game over screen."""
+    screen.fill(BACKGROUND_COLOR)
+    font = pygame.font.Font(None, 72)
+    text = font.render("Game Over", True, TEXT_COLOR)
+    text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+    screen.blit(text, text_rect)
 
-# Quit Pygame
-pygame.quit()
+    font = pygame.font.Font(None, 36)
+    text = font.render(f"Final Score: {score}", True, TEXT_COLOR)
+    text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
+    screen.blit(text, text_rect)
+
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                waiting = False
+            if event.type == pygame.KEYDOWN:
+                waiting = False
+
+def main():
+    """Main function to run the snake game."""
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Snake Game")
+    clock = pygame.time.Clock()
+
+    # Initial game state
+    snake_segments = [
+        pygame.Rect(100, 100, SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE),
+        pygame.Rect(80, 100, SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE),
+        pygame.Rect(60, 100, SNAKE_SEGMENT_SIZE, SNAKE_SEGMENT_SIZE),
+    ]
+    food_position = pygame.Rect(
+        random.randrange(0, SCREEN_WIDTH // SNAKE_SEGMENT_SIZE) * SNAKE_SEGMENT_SIZE,
+        random.randrange(0, SCREEN_HEIGHT // SNAKE_SEGMENT_SIZE) * SNAKE_SEGMENT_SIZE,
+        SNAKE_SEGMENT_SIZE,
+        SNAKE_SEGMENT_SIZE,
+    )
+    direction = "RIGHT"
+    score = 0
+
+    running = True
+    while running:
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP and direction != "DOWN":
+                    direction = "UP"
+                elif event.key == pygame.K_DOWN and direction != "UP":
+                    direction = "DOWN"
+                elif event.key == pygame.K_LEFT and direction != "RIGHT":
+                    direction = "LEFT"
+                elif event.key == pygame.K_RIGHT and direction != "LEFT":
+                    direction = "RIGHT"
+
+        # Game logic
+        move_snake(direction, snake_segments)
+
+        if check_food_collision(snake_segments, food_position):
+            score += 1
+        else:
+            snake_segments.pop()
+
+        if check_game_over(snake_segments):
+            running = False
+
+        # Drawing
+        if running:
+            draw_elements(screen, snake_segments, food_position, score)
+            clock.tick(FPS)
+
+    draw_game_over(screen, score)
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
